@@ -2,7 +2,7 @@
 
 Halloween Eyes
 
-Scare up some serious fun. If your lucky, the kids might drop their candy and run away.
+Scare up some serious fun with these animated scary eyes. If your lucky, the kids might drop their candy and run away.
 
 ![eyes-single.png](eyes-single.png) ![eyes-multiple.png](eyes-multiple.png)
 
