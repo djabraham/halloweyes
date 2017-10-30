@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Boo!</title>
+
+  <style>
+      body {
+        padding: 0;
+        margin: 0;
+        background-color: black;
+      }
+  </style>
+
+</head>
+
+<body>
+  <canvas id="c"></canvas>
+
+  <script>
+    var c = document.getElementById('c'),
+      ctx = c.getContext('2d'),
+      cw = c.width = window.innerWidth,
+      ch = c.height = window.innerHeight,
+      pi2 = Math.PI * 2,
+      eyes = [],
+      dirty = true,
+      rand = function (min, max) {
+        return Math.floor((Math.random() * (max - min + 1)) + min);
+      };
+
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = 8;
+
+    var Ball = function (opt) {
+      this.x = opt.x;
+      this.y = opt.y;
+      this.vx = 10;
+      this.vy = 10;
+      this.radius = opt.radius;
+      this.color = opt.color;
+    };
+
+    Ball.prototype.update = function () {
+      this.x += this.vx;
+      this.y += this.vy;
+
+      if (this.x > cw - this.radius || this.x < this.radius) {
+        this.vx = -this.vx;
+      }
+      if (this.y > ch - this.radius || this.y < this.radius) {
+        this.vy = -this.vy;
+      }
+    };
+
+    Ball.prototype.render = function () {
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.radius, 0, pi2, false);
+      ctx.fillStyle = this.color;
+      ctx.fill();
+    };
+
+    var ball = new Ball({
+      x: cw / 2,
+      y: ch / 2,
+      radius: 10,
+      color: '#fff'
+    });
+
+    var Eye = function (opt) {
+      this.xOrigin = opt.x;
+      this.yOrigin = opt.y;
+      this.x = opt.x;
+      this.y = opt.y;
+      this.scleraRadius = opt.scleraRadius;
+      this.irisRadius = opt.irisRadius;
+      this.pupilRadius = opt.pupilRadius;
+      this.scleraColor = opt.scleraColor;
+      this.irisColor = opt.irisColor;
+      this.pupilColor = opt.pupilColor;
+      this.scale = opt.scale;
+      this.spacing = 80;
+      this.open = 0;
+      this.blinking = 0;
+      this.angry = 0;
+      this.dirty = true;
+
+      var dx = ball.x - this.xOrigin,
+        dy = ball.y - this.yOrigin,
+        angle = Math.atan2(dy, dx),
+        vx = Math.cos(angle) * 40,
+        vy = Math.sin(angle) * 20;
+
+      this.x = this.xOrigin + (vx / 2);
+      this.y = this.yOrigin + (vy / 2);
+    };
+
+    Eye.prototype.update = function () {
+      var posLeft = this.xOrigin - (this.spacing * this.scale);
+      var posRight = this.xOrigin + (this.spacing * this.scale);
+
+      var dx = ball.x - this.xOrigin,
+        dy = ball.y - this.yOrigin,
+        angle = Math.atan2(dy, dx),
+        vx = Math.cos(angle) * 40,
+        vy = Math.sin(angle) * 20;
+
+      this.x = this.xOrigin + (vx / 2);
+      this.y = this.yOrigin + (vy / 2);
+    };
+
+    // DRAWS THE EYE
+    Eye.prototype.render = function () {
+
+      if (this.blinking < 0) {
+        this.open += 0.2;
+        this.dirty = true;
+        if (this.open >= 1.25) {
+          this.blinking = 0;
+          this.open = 1.25;
+          this.dirty = false;
+        }
+      } else if (this.blinking > 0) {
+        this.open -= 0.1;
+        this.dirty = true;
+        if (this.open <= -1.0) {
+          this.blinking = -1;
+          this.open = -1.0;
+        }
+      } else {
+        if (this.open) {
+          this.dirty = false;
+        }
+      }
+
+      ctx.fillStyle = this.scleraColor; // this.angry ? '#f40' : '#eee';
+      var posLeft = this.xOrigin - (this.spacing * this.scale);
+      var posRight = this.xOrigin + (this.spacing * this.scale);
+      var scelara = this.scleraRadius * this.scale;
+      var focus = 8 * this.scale;
+      var angered = this.angry * 30 * this.scale;
+      var angst = this.angry * 5 * this.scale;
+
+      // Sclera Fill
+      ctx.beginPath();
+      ctx.moveTo(posLeft - scelara, this.yOrigin - angered);
+      ctx.quadraticCurveTo(posLeft + angered, this.yOrigin - scelara * this.open, posLeft + scelara, this.yOrigin);
+      ctx.quadraticCurveTo(posLeft - angered, this.yOrigin + scelara * this.open, posLeft - scelara, this.yOrigin - angered);
+      ctx.closePath();
+      ctx.fill();
+      ctx.save();
+      ctx.clip();
+
+      // Iris
+      ctx.beginPath();
+      ctx.arc(posLeft + focus + angst, this.y, this.irisRadius * this.scale, 0, pi2, false);
+      ctx.fillStyle = this.irisColor;
+      ctx.fill();
+
+      // Pupil
+      ctx.beginPath();
+      ctx.fillStyle = this.pupilColor;
+      ctx.arc(posLeft + focus + angst, this.y, this.pupilRadius * this.scale, 0, pi2, false);
+      ctx.fill();
+
+      ctx.restore();
+
+      ctx.beginPath();
+      ctx.moveTo(posRight - scelara, this.yOrigin);
+      ctx.quadraticCurveTo(posRight - angered, this.yOrigin - scelara * this.open, posRight + scelara, this.yOrigin - angered);
+      ctx.quadraticCurveTo(posRight + angered, this.yOrigin + scelara * this.open, posRight - scelara, this.yOrigin);
+      ctx.closePath();
+      ctx.fill();
+      ctx.save();
+      ctx.clip();
+
+      // Iris
+      ctx.beginPath();
+      ctx.arc(posRight - focus - angst, this.y, this.irisRadius * this.scale, 0, pi2, false);
+      ctx.fillStyle = this.irisColor;
+      ctx.fill();
+
+      // Pupil
+      ctx.beginPath();
+      ctx.fillStyle = this.pupilColor;
+      ctx.arc(posRight - focus - angst, this.y, this.pupilRadius * this.scale, 0, pi2, false);
+      ctx.fill();
+
+      ctx.restore();
+
+      // console.log('rend');
+    }
+
+    var updateEyes = function () {
+      var i = eyes.length;
+      while (i--) {
+        eyes[i].update();
+      }
+    };
+
+    var renderEyes = function () {
+      var i = eyes.length;
+      while (i--) {
+        eyes[i].render();
+      }
+    };
+
+    var clear = function () {
+      ctx.clearRect(0, 0, cw, ch);
+    };
+
+    var run = function () {
+      window.requestAnimFrame(run, c);
+
+      var rendering = false;
+      eyes.forEach(function(eye) {
+        if (eye.dirty) {
+          rendering = true;
+        }
+      });
+
+      if (rendering) {
+        clear();
+        // ball.update();
+        // ball.render();
+        // updateEyes();
+        renderEyes();
+      }
+    };
+
+    window.requestAnimFrame = function () {
+      return window.requestAnimationFrame || window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame || window.oRequestAnimationFrame || window.msRequestAnimationFrame ||
+        function (a) { window.setTimeout(a, 1E3 / 30) };
+    }();
+
+    function createEyes(count) {
+      var posX = [];
+      var posY = [];
+
+      var xint = Math.floor((cw - 230) / count);
+      var yint = Math.floor((ch - 60) / count);
+
+      var p = count;
+      while (p--) {
+        var weight = (p - (count / 2) + 0.5) * (count * count);
+        posX.push(Math.floor(((p * xint) + 160) + (cw / weight)));
+        posY.push(Math.floor(((p * yint) + 50) + (ch / weight)));
+        // console.log(p, weight, cw / weight, ch / weight);
+      }
+
+      var r = count;
+      while (r--) {
+        var valX = posX[r];
+        var valY = posY[r];
+
+        var xr = r - rand(0, count - 1);
+        var yr = r - rand(0, count - 1);
+
+        xr = (xr >= 0) ? xr : xr + count;
+        yr = (yr >= 0) ? yr : yr + count;
+        posX[r] = posX[xr];
+        posY[r] = posY[yr];
+        posX[xr] = valX;
+        posY[yr] = valY;
+      }
+
+      eyes = [];
+
+      var i = count;
+      while (i--) {
+        eyes.push(new Eye({
+          x: posX[i],   // (i * xint) + 150,   // rand(100, cw - 100), // pos[i].x + cw / 2,   // rand(cw - 100, 100), //((cw - 150) / count) * (i + 1),
+          y: posY[i],  // (i * yint) + 60, //  rand(100, ch - 100), // pos[i].y + cw / 2,   // rand(100, ch - 100),
+          scleraRadius: 60,
+          irisRadius: 45,  // rand(40, 60),
+          pupilRadius: 20, // rand(10, 30),
+          scleraColor: 'rgba(255,255,255,0.5)',
+          irisColor: 'rgba(255,255,0,0.95)', // 'hsla(' + rand(0, 360) + ', 80%, 60%, 1)',
+          pupilColor: 'rgba(0,24,0,1)', // '#111',
+          scale: rand(50, 100) / 100
+        }));
+      }
+
+      var blinkInt = setInterval(function() {
+        var eye = eyes[rand(0, eyes.length - 1)];
+        if (eye.blinking == 0) {
+          eye.blinking = 1;
+          eye.dirty = true;
+        }
+      }, 250);
+
+      setTimeout(function(){
+        clearInterval(blinkInt);
+
+        eyes.forEach(function(eye) {
+          if (eye.open == 0) {
+            eye.open = 1;
+            eye.dirty = true;
+          }
+        });
+      }, 4000);
+
+      setTimeout(function(){
+        eyes.forEach(function(eye) {
+          eye.open = 0.8;
+          eye.angry = 1;
+          eye.irisRadius = 40;
+          eye.scleraColor = '#f20';
+          eye.pupilRadius = 20;
+          eye.dirty = true;
+        });
+      }, 6000);
+    }
+
+    createEyes(6);
+
+    setInterval(function() {
+      clear();
+      setTimeout(function(){
+        createEyes(rand(4, 8));
+      }, 8000);
+    }, 12000);
+
+    run();
+  </script>
+</body>
+
+</html>
