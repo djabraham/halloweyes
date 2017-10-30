@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Boo!</title>
+
+  <style>
+      body {
+        padding: 0;
+        margin: 0;
+        background-color: black;
+      }
+  </style>
+</head>
+
+<body>
+  <canvas id="c"></canvas>
+
+  <script>
+    var c = document.getElementById('c'),
+      ctx = c.getContext('2d'),
+      cw = c.width = window.innerWidth,
+      ch = c.height = window.innerHeight,
+      cx = cw / 2,
+      cy = ch / 2,
+      pi2 = Math.PI * 2,
+      eye = undefined,
+      dirty = true,
+      rand = function (min, max) {
+        return Math.floor((Math.random() * (max - min + 1)) + min);
+      };
+
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = 8;
+
+    var Eye = function (opt) {
+      this.xOrigin = opt.x;
+      this.yOrigin = opt.y;
+      this.x = opt.x;
+      this.y = opt.y;
+      this.eyeballRadius = opt.eyeballRadius;
+      this.irisRadius = opt.irisRadius;
+      this.pupilRadius = opt.pupilRadius;
+      this.eyeballColor = opt.eyeballColor;
+      this.irisColor = opt.irisColor;
+      this.pupilColor = opt.pupilColor;
+      this.scale = opt.scale;
+      this.spacing = 80;
+      this.open = 0;
+      this.blinking = 0;
+      this.angry = 0;
+      this.dirty = true;
+
+      var dx = cx - this.xOrigin,
+        dy = cy - this.yOrigin,
+        angle = Math.atan2(dy, dx),
+        vx = Math.cos(angle) * 40,
+        vy = Math.sin(angle) * 20;
+
+      this.x = this.xOrigin + (vx / 2);
+      this.y = this.yOrigin + (vy / 2);
+    };
+
+    // DRAWS THE EYE
+    Eye.prototype.render = function () {
+
+      if (this.blinking < 0) {
+        this.open += 0.2;
+        this.dirty = true;
+        if (this.open >= 1.5) {
+          this.blinking = 0;
+          this.open = 1.5;
+          this.dirty = false;
+        }
+      } else if (this.blinking > 0) {
+        this.open -= 0.1;
+        this.dirty = true;
+        if (this.open <= -1.0) {
+          this.blinking = -1;
+          this.open = -1.0;
+        }
+      } else {
+        if (this.open) {
+          this.dirty = false;
+        }
+      }
+
+      ctx.fillStyle = this.eyeballColor; // this.angry ? '#f40' : '#eee';
+      var posLeft = this.xOrigin - (this.spacing * this.scale);
+      var posRight = this.xOrigin + (this.spacing * this.scale);
+      var scelara = this.eyeballRadius * this.scale;
+      var focus = 8 * this.scale;
+      var angered = this.angry * 30 * this.scale;
+      var angst = this.angry * 5 * this.scale;
+
+      // Eyeball Fill
+      ctx.beginPath();
+      ctx.moveTo(posLeft - scelara, this.yOrigin - angered);
+      ctx.quadraticCurveTo(posLeft + angered, this.yOrigin - scelara * this.open, posLeft + scelara, this.yOrigin);
+      ctx.quadraticCurveTo(posLeft - angered, this.yOrigin + scelara * this.open, posLeft - scelara, this.yOrigin - angered);
+      ctx.closePath();
+      ctx.fill();
+      ctx.save();
+      ctx.clip();
+
+      // Iris
+      ctx.beginPath();
+      ctx.arc(posLeft + focus + angst, this.y, this.irisRadius * this.scale, 0, pi2, false);
+      ctx.fillStyle = this.irisColor;
+      ctx.fill();
+
+      // Pupil
+      ctx.beginPath();
+      ctx.fillStyle = this.pupilColor;
+      ctx.arc(posLeft + focus + angst, this.y, this.pupilRadius * this.scale, 0, pi2, false);
+      ctx.fill();
+
+      ctx.restore();
+
+      ctx.beginPath();
+      ctx.moveTo(posRight - scelara, this.yOrigin);
+      ctx.quadraticCurveTo(posRight - angered, this.yOrigin - scelara * this.open, posRight + scelara, this.yOrigin - angered);
+      ctx.quadraticCurveTo(posRight + angered, this.yOrigin + scelara * this.open, posRight - scelara, this.yOrigin);
+      ctx.closePath();
+      ctx.fill();
+      ctx.save();
+      ctx.clip();
+
+      // Iris
+      ctx.beginPath();
+      ctx.arc(posRight - focus - angst, this.y, this.irisRadius * this.scale, 0, pi2, false);
+      ctx.fillStyle = this.irisColor;
+      ctx.fill();
+
+      // Pupil
+      ctx.beginPath();
+      ctx.fillStyle = this.pupilColor;
+      ctx.arc(posRight - focus - angst, this.y, this.pupilRadius * this.scale, 0, pi2, false);
+      ctx.fill();
+
+      ctx.restore();
+    }
+
+    var clear = function () {
+      ctx.clearRect(0, 0, cw, ch);
+    };
+
+    var run = function () {
+      window.requestAnimFrame(run, c);
+
+      if (eye.dirty) {
+        clear();
+        eye.render();
+      }
+    };
+
+    window.requestAnimFrame = function () {
+      return window.requestAnimationFrame ||
+             window.webkitRequestAnimationFrame ||
+             window.mozRequestAnimationFrame ||
+             window.oRequestAnimationFrame ||
+             window.msRequestAnimationFrame ||
+             function (a) { window.setTimeout(a, 1E3 / 30) };
+    }();
+
+    function createEye() {
+      var posX = [];
+      var posY = [];
+
+      var xint = Math.floor(cw - 100);
+      var yint = Math.floor(ch - 60)
+
+      eye = new Eye({
+        x: cx,
+        y: cy,
+        eyeballRadius: 60,
+        irisRadius: 45,
+        pupilRadius: 20, // rand(10, 30),
+        eyeballColor: 'rgba(255,255,255,0.5)',
+        irisColor: 'rgba(255,255,0,0.95)', // 'hsla(' + rand(0, 360) + ', 80%, 60%, 1)',
+        pupilColor: 'rgba(0,24,0,1)', // '#111',
+        scale: cx / 150
+      });
+
+      var blinkInt = setInterval(function() {
+        if (eye.blinking == 0) {
+          eye.blinking = 1;
+          eye.dirty = true;
+        }
+      }, 1500);
+
+      setTimeout(function(){
+        clearInterval(blinkInt);
+        if (eye.open == 0) {
+          eye.open = 1;
+          eye.dirty = true;
+        }
+      }, 4000);
+
+      setTimeout(function(){
+        eye.open = 0.8;
+        eye.angry = 1.8;
+        eye.irisRadius = 40;
+        eye.eyeballColor = '#f20';
+        eye.pupilRadius = 20;
+        eye.dirty = true;
+      }, 8000);
+    }
+
+    createEye();
+
+    setInterval(function() {
+      clear();
+      setTimeout(function(){
+        createEye();
+      }, 16000);
+    }, 12000);
+
+    run();
+  </script>
+</body>
+
+</html>
